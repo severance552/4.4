@@ -1,4 +1,4 @@
-// Обробник подій, який відстежує завантаження контенту
+
 document.addEventListener('DOMContentLoaded', function () {
   const btnOpenModal = document.querySelector('#btnOpenModal');
   const modalBlock = document.querySelector('#modalBlock');
@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const sendButton = document.querySelector('#send');
   const modalTitle = document.querySelector('.modal-title');
 
-  // Your web app's Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyCp9asnfw1Pd5CFZKKFI3RxgqEc3deg0bc",
     authDomain: "myfarebase-adab0.firebaseapp.com",
@@ -22,12 +21,10 @@ document.addEventListener('DOMContentLoaded', function () {
     measurementId: "G-L8L4QNR898"
   };
 
-  // Initialize Firebase
   if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
 
-  // Функція отримання даних із Firebase Realtime Database
   const getData = () => {
     formAnswers.textContent = 'LOAD';
     questionTitle.textContent = '';
@@ -49,7 +46,6 @@ document.addEventListener('DOMContentLoaded', function () {
             formAnswers.textContent = 'Помилка завантаження даних!';
           });
       } catch (err) {
-        // Резервне завантаження з тієї ж бази Firebase, якщо у index.html підключено стару версію SDK 7.6.1
         fetch(`${firebaseConfig.databaseURL}/questions.json`)
           .then((res) => res.json())
           .then((questions) => playTest(questions))
@@ -61,7 +57,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 500);
   };
 
-  // Обробники подій відкриття/закриття модального вікна
   btnOpenModal.addEventListener('click', () => {
     modalBlock.classList.add('d-block');
     getData();
@@ -71,13 +66,11 @@ document.addEventListener('DOMContentLoaded', function () {
     modalBlock.classList.remove('d-block');
   });
 
-  // Функція запуску тестування
   const playTest = (questions) => {
     const finalAnswers = [];
     let numberQuestion = 0;
     modalTitle.textContent = 'Дай відповідь на питання:';
 
-    // Функція рендерингу варіантів відповідей
     const renderAnswers = (index) => {
       questions[index].answers.forEach((answer) => {
         const answerItem = document.createElement('div');
@@ -96,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     };
 
-    // Функція рендерингу питань + відповідей + кнопок (Switch / Case)
     const renderQuestions = (indexQuestion) => {
       formAnswers.innerHTML = '';
 
@@ -143,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     };
 
-    // Запуск функції рендерингу
     renderQuestions(numberQuestion);
 
     const checkAnswer = () => {
@@ -163,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function () {
       finalAnswers.push(obj);
     };
 
-    // Обробники подій кнопок
     nextButton.onclick = () => {
       checkAnswer();
       numberQuestion++;
