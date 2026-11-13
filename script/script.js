@@ -1,3 +1,4 @@
+// Обробник подій, який відстежує завантаження контенту
 document.addEventListener('DOMContentLoaded', function () {
   const btnOpenModal = document.querySelector('#btnOpenModal');
   const modalBlock = document.querySelector('#modalBlock');
@@ -6,105 +7,85 @@ document.addEventListener('DOMContentLoaded', function () {
   const formAnswers = document.querySelector('#formAnswers');
   const nextButton = document.querySelector('#next');
   const prevButton = document.querySelector('#prev');
+  const sendButton = document.querySelector('#send');
+  const modalTitle = document.querySelector('.modal-title');
 
-  const burgerName = 'Стандарт';
-  const burgerImage = './image/burger.png';
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCp9asnfw1Pd5CFZKKFI3RxgqEc3deg0bc",
+    authDomain: "myfarebase-adab0.firebaseapp.com",
+    databaseURL: "https://myfarebase-adab0-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "myfarebase-adab0",
+    storageBucket: "myfarebase-adab0.firebasestorage.app",
+    messagingSenderId: "881652167280",
+    appId: "1:881652167280:web:012a365d05c773dc467ab5",
+    measurementId: "G-L8L4QNR898"
+  };
 
-  const questions = [
-    {
-      question: "Якого кольору бургер?",
-      answers: [
-        {
-          title: burgerName,
-          url: burgerImage
-        },
-        {
-          title: 'Чорний',
-          url: './image/burgerBlack.png'
-        }
-      ],
-      type: 'radio'
-    },
-    {
-      question: "З якого м'яса котлета?",
-      answers: [
-        {
-          title: 'Курка',
-          url: './image/chickenMeat.png'
-        },
-        {
-          title: 'Яловичина',
-          url: './image/beefMeat.png'
-        },
-        {
-          title: 'Свинина',
-          url: './image/porkMeat.png'
-        }
-      ],
-      type: 'radio'
-    },
-    {
-      question: "Додаткові інгредієнти ?",
-      answers: [
-        {
-          title: 'Помідор',
-          url: './image/tomato.png'
-        },
-        {
-          title: 'Огірок',
-          url: './image/cucumber.png'
-        },
-        {
-          title: 'Салат',
-          url: './image/salad.png'
-        },
-        {
-          title: 'Цибуля',
-          url: './image/onion.png'
-        }
-      ],
-      type: 'checkbox'
-    },
-    {
-      question: "Додати соус?",
-      answers: [
-        {
-          title: 'Часниковий',
-          url: './image/sauce1.png'
-        },
-        {
-          title: 'Томатний',
-          url: './image/sauce2.png'
-        },
-        {
-          title: 'Гірчичний',
-          url: './image/sauce3.png'
-        }
-      ],
-      type: 'radio'
-    }
-  ];
+  // Initialize Firebase
+  if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
 
+  // Функція отримання даних із Firebase Realtime Database
+  const getData = () => {
+    formAnswers.textContent = 'LOAD';
+    questionTitle.textContent = '';
+    modalTitle.textContent = 'Дай відповідь на питання:';
+    nextButton.classList.add('d-none');
+    prevButton.classList.add('d-none');
+    sendButton.classList.add('d-none');
+
+    setTimeout(() => {
+      try {
+        firebase
+          .database()
+          .ref()
+          .child('questions')
+          .once('value')
+          .then((snap) => playTest(snap.val()))
+          .catch((err) => {
+            console.error(err);
+            formAnswers.textContent = 'Помилка завантаження даних!';
+          });
+      } catch (err) {
+        // Резервне завантаження з тієї ж бази Firebase, якщо у index.html підключено стару версію SDK 7.6.1
+        fetch(`${firebaseConfig.databaseURL}/questions.json`)
+          .then((res) => res.json())
+          .then((questions) => playTest(questions))
+          .catch((fetchErr) => {
+            console.error(fetchErr);
+            formAnswers.textContent = 'Помилка завантаження даних!';
+          });
+      }
+    }, 500);
+  };
+
+  // Обробники подій відкриття/закриття модального вікна
   btnOpenModal.addEventListener('click', () => {
     modalBlock.classList.add('d-block');
-    playTest();
+    getData();
   });
 
   closeModal.addEventListener('click', () => {
     modalBlock.classList.remove('d-block');
   });
 
-  const playTest = () => {
+  // Функція запуску тестування
+  const playTest = (questions) => {
+    const finalAnswers = [];
     let numberQuestion = 0;
+    modalTitle.textContent = 'Дай відповідь на питання:';
 
+    // Функція рендерингу варіантів відповідей
     const renderAnswers = (index) => {
       questions[index].answers.forEach((answer) => {
         const answerItem = document.createElement('div');
 
-        answerItem.classList.add('answers-item', 'd-flex', 'flex-column');
+        answerItem.classList.add('answers-item', 'd-flex', 'justify-content-center');
 
         answerItem.innerHTML = `
-          <input type="${questions[index].type}" id="${answer.title}" name="answer" class="d-none">
+          <input type="${questions[index].type}" id="${answer.title}" name="answer" class="d-none" value="${answer.title}">
           <label for="${answer.title}" class="d-flex flex-column justify-content-between">
             <img class="answerImg" src="${answer.url}" alt="burger">
             <span>${answer.title}</span>
@@ -115,29 +96,76 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     };
 
+    // Функція рендерингу питань + відповідей + кнопок (Switch / Case)
     const renderQuestions = (indexQuestion) => {
       formAnswers.innerHTML = '';
 
-      questionTitle.textContent = `${questions[indexQuestion].question}`;
+      switch (true) {
+        case (numberQuestion === 0):
+          questionTitle.textContent = `${questions[indexQuestion].question}`;
+          renderAnswers(indexQuestion);
+          nextButton.classList.remove('d-none');
+          prevButton.classList.add('d-none');
+          sendButton.classList.add('d-none');
+          break;
 
-      renderAnswers(indexQuestion);
+        case (numberQuestion > 0 && numberQuestion <= questions.length - 1):
+          questionTitle.textContent = `${questions[indexQuestion].question}`;
+          renderAnswers(indexQuestion);
+          nextButton.classList.remove('d-none');
+          prevButton.classList.remove('d-none');
+          sendButton.classList.add('d-none');
+          break;
 
-      if (numberQuestion === 0) {
-        prevButton.classList.add('d-none');
-      } else if (numberQuestion > 0) {
-        prevButton.classList.remove('d-none');
-      }
+        case (numberQuestion === questions.length):
+          questionTitle.textContent = '';
+          modalTitle.textContent = '';
+          nextButton.classList.add('d-none');
+          prevButton.classList.add('d-none');
+          sendButton.classList.remove('d-none');
 
-      if (numberQuestion === questions.length - 1) {
-        nextButton.classList.add('d-none');
-      } else if (numberQuestion < questions.length - 1) {
-        nextButton.classList.remove('d-none');
+          formAnswers.innerHTML = `
+            <div class="form-group">
+              <label for="numberPhone">Введіть свій номер телефону</label>
+              <input type="phone" class="form-control" id="numberPhone">
+            </div>
+          `;
+          break;
+
+        case (numberQuestion === questions.length + 1):
+          formAnswers.textContent = 'Дякую за пройдений тест!';
+          sendButton.classList.add('d-none');
+
+          setTimeout(() => {
+            modalBlock.classList.remove('d-block');
+          }, 2000);
+          break;
       }
     };
 
+    // Запуск функції рендерингу
     renderQuestions(numberQuestion);
 
+    const checkAnswer = () => {
+      const obj = {};
+      const inputs = [...formAnswers.elements].filter((input) => input.checked || input.id === 'numberPhone');
+
+      inputs.forEach((input, index) => {
+        if (numberQuestion >= 0 && numberQuestion <= questions.length - 1) {
+          obj[`${index}_${questions[numberQuestion].question}`] = input.value;
+        }
+
+        if (numberQuestion === questions.length) {
+          obj['Номер телефону'] = input.value;
+        }
+      });
+
+      finalAnswers.push(obj);
+    };
+
+    // Обробники подій кнопок
     nextButton.onclick = () => {
+      checkAnswer();
       numberQuestion++;
       renderQuestions(numberQuestion);
     };
@@ -145,6 +173,26 @@ document.addEventListener('DOMContentLoaded', function () {
     prevButton.onclick = () => {
       numberQuestion--;
       renderQuestions(numberQuestion);
+    };
+
+    sendButton.onclick = () => {
+      checkAnswer();
+      numberQuestion++;
+      renderQuestions(numberQuestion);
+
+      try {
+        firebase
+          .database()
+          .ref()
+          .child('contacts')
+          .push(finalAnswers);
+      } catch (err) {
+        fetch(`${firebaseConfig.databaseURL}/contacts.json`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(finalAnswers)
+        });
+      }
     };
   };
 });
